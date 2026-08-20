@@ -1714,15 +1714,28 @@ bool Player::TeleportTo(WorldLocation const& loc, uint32 options /*= 0*/)
 // CMSG_MOVE_TELEPORT_ACK from the client before committing the new position.
 // A bot session has no real socket, so that ACK never arrives and the bot
 // would be stuck indefinitely in IsBeingTeleportedNear().
-// This method replicates the non-Player branch of Unit::NearTeleportTo() —
-// a pure server-side commit — using only members accessible from Player.
+//
+// Approach: destroy + create cycle.
+// 1. DestroyForNearbyPlayers() — while still at the old position, send
+//    SMSG_DESTROY_OBJECT to every nearby player that has this bot in its
+//    m_clientGUIDs set and clear those entries.  The client will immediately
+//    stop rendering the bot at the stale location.
+// 2. UpdatePosition(dest, true) — move the bot server-side (Map::PlayerRelocation
+//    updates the grid cell and sets NOTIFY_VISIBILITY_CHANGED).
+// 3. UpdateObjectVisibility(true) — forced visibility pass: because the bot was
+//    just removed from every observer's m_clientGUIDs, HaveAtClient() returns
+//    false for all nearby players, so BuildCreateUpdateBlockForPlayer() is called
+//    for each of them and the bot appears at the new position.
+// 4. SetFallInformation — reset fall-tracking to the new Z.
 void Player::BotRelocate(Position const& dest)
 {
-    ASSERT(GetSession() && GetSession()->IsBotSession(), "BotRelocate called on non-bot player");
-    DisableSpline();                 // stop any active movement spline
-    SendTeleportPacket(dest);        // no-op: WorldSession::SendPacket is a no-op on bot sessions
-    UpdatePosition(dest, true);      // Player override: also updates zone/area/group flags
-    UpdateObjectVisibility();        // Player override: rebuilds visibility for surrounding objects
+    ASSERT(GetSession() && GetSession()->IsBotSession(), "BotRelocate requires a valid bot session; called on a player without a session or on a non-bot session");
+    DisableSpline();
+
+    DestroyForNearbyPlayers();
+    UpdatePosition(dest, true);
+    UpdateObjectVisibility(true);
+    SetFallInformation(0, GetPositionZ());
 }
 
 bool Player::TeleportToBGEntryPoint()
