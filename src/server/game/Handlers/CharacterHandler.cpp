@@ -62,6 +62,9 @@
 #include "SystemPackets.h"
 #include "World.h"
 #include "WorldPacket.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 #include "WorldSession.h"
 #include "boost/asio/ip/address.hpp"
 
