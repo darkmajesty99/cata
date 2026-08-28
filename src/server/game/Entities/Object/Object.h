@@ -41,6 +41,9 @@ class Corpse;
 class Creature;
 class CreatureAI;
 class DynamicObject;
+#ifdef ELUNA
+class ElunaEventProcessor;
+#endif
 class GameObject;
 class InstanceScript;
 class Map;
@@ -285,7 +288,11 @@ class FC_GAME_API WorldObject : public Object, public WorldLocation
     public:
         virtual ~WorldObject();
 
+#ifdef ELUNA
+        virtual void Update (uint32 /*time_diff*/);
+#else
         virtual void Update (uint32 /*time_diff*/) { }
+#endif
 
         void _Create(ObjectGuid::LowType guidlow, HighGuid guidhigh);
         void AddToWorld() override;
@@ -472,6 +479,10 @@ class FC_GAME_API WorldObject : public Object, public WorldLocation
         bool IsWorldObject() const;
 
         uint32  LastUsedScriptID;
+
+#ifdef ELUNA
+        ElunaEventProcessor* elunaEvents;
+#endif
 
         // Transports
         TransportBase* GetTransport() const { return m_transport; }
