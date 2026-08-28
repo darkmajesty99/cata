@@ -46,6 +46,9 @@
 #include "Transport.h"
 #include "UpdateFieldFlags.h"
 #include "World.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 #include <G3D/Box.h>
 #include <G3D/CoordinateFrame.h>
 #include <G3D/Quat.h>
@@ -560,6 +563,10 @@ void GameObject::AddToWorld()
 
         EnableCollision(toggledState);
         WorldObject::AddToWorld();
+
+#ifdef ELUNA
+        sEluna->OnAddToWorld(this);
+#endif
     }
 }
 
@@ -568,6 +575,9 @@ void GameObject::RemoveFromWorld()
     ///- Remove the gameobject from the accessor
     if (IsInWorld())
     {
+#ifdef ELUNA
+        sEluna->OnRemoveFromWorld(this);
+#endif
         if (m_zoneScript)
             m_zoneScript->OnGameObjectRemove(this);
 
@@ -776,6 +786,9 @@ bool GameObject::Create(ObjectGuid::LowType guidlow, uint32 name_id, Map* map, P
 
 void GameObject::Update(uint32 diff)
 {
+#ifdef ELUNA
+    sEluna->UpdateAI(this, diff);
+#endif
     if (AI())
         AI()->UpdateAI(diff);
     else if (!AIM_Initialize())
@@ -1814,6 +1827,10 @@ void GameObject::Use(Unit* user)
             return;
         }
 
+#ifdef ELUNA
+        if (sEluna->OnGossipHello(playerUser, this))
+            return;
+#endif
         if (AI()->GossipHello(playerUser))
         {
             return;
@@ -2658,6 +2675,9 @@ void GameObject::SetDestructibleState(GameObjectDestructibleState state, Player*
         break;
     case GO_DESTRUCTIBLE_DAMAGED:
     {
+#ifdef ELUNA
+        sEluna->OnDamaged(this, attackerOrHealer);
+#endif
         if (GetGOInfo()->building.damagedEvent)
             GameEvents::Trigger(GetGOInfo()->building.damagedEvent, eventInvoker, this);
         AI()->Damaged(eventInvoker, m_goInfo->building.damageEvent);
@@ -2684,6 +2704,9 @@ void GameObject::SetDestructibleState(GameObjectDestructibleState state, Player*
     }
     case GO_DESTRUCTIBLE_DESTROYED:
     {
+#ifdef ELUNA
+        sEluna->OnDestroyed(this, attackerOrHealer);
+#endif
         if (GetGOInfo()->building.destroyedEvent)
             GameEvents::Trigger(GetGOInfo()->building.destroyedEvent, eventInvoker, this);
         AI()->Destroyed(eventInvoker, m_goInfo->building.destroyedEvent);
@@ -2741,6 +2764,10 @@ void GameObject::SetLootState(LootState state, Unit* unit)
     else
         m_lootStateUnitGUID.Clear();
 
+#ifdef ELUNA
+    sEluna->OnLootStateChanged(this, state);
+#endif
+
     AI()->OnLootStateChanged(state, unit);
 
     // Start restock timer if the chest is partially looted or not looted at all
@@ -2767,6 +2794,9 @@ void GameObject::SetGoState(GOState state)
 {
     GOState oldState = GetGoState();
     SetByteValue(GAMEOBJECT_BYTES_1, 0, state);
+#ifdef ELUNA
+    sEluna->OnGameObjectStateChanged(this, state);
+#endif
     if (AI())
         AI()->OnStateChanged(state);
 
