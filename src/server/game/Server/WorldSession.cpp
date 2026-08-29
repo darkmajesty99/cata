@@ -60,6 +60,9 @@
 #include "World.h"
 #include "WorldPacket.h"
 #include "WorldSocket.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 
 namespace {
 
@@ -304,7 +307,12 @@ void WorldSession::SendPacket(WorldPacket const *packet,
   }
 #endif  // !FC_DEBUG
 
-  sScriptMgr->OnPacketSend(this, *packet);
+    sScriptMgr->OnPacketSend(this, *packet);
+
+#ifdef ELUNA
+    if (!sEluna->OnPacketSend(this, *packet))
+        return;
+#endif
 
   LOG_TRACE(
       "network.opcode", "S->C: %s %s", GetPlayerInfo().c_str(),
@@ -395,6 +403,10 @@ bool WorldSession::Update(uint32 diff, PacketFilter &updater) {
           } else if (_player->IsInWorld() &&
                      AntiDOS.EvaluateOpcode(*packet, currentTime)) {
             sScriptMgr->OnPacketReceive(this, *packet);
+#ifdef ELUNA
+            if (!sEluna->OnPacketReceive(this, *packet))
+                break;
+#endif
             opHandle->Call(this, *packet);
           } else
             processedPackets =
@@ -416,6 +428,10 @@ bool WorldSession::Update(uint32 diff, PacketFilter &updater) {
           else if (AntiDOS.EvaluateOpcode(*packet, currentTime)) {
             // not expected _player or must checked in packet hanlder
             sScriptMgr->OnPacketReceive(this, *packet);
+#ifdef ELUNA
+            if (!sEluna->OnPacketReceive(this, *packet))
+                break;
+#endif
             opHandle->Call(this, *packet);
           } else
             processedPackets =
@@ -433,6 +449,10 @@ bool WorldSession::Update(uint32 diff, PacketFilter &updater) {
                                 "the player is still in world");
           else if (AntiDOS.EvaluateOpcode(*packet, currentTime)) {
             sScriptMgr->OnPacketReceive(this, *packet);
+#ifdef ELUNA
+            if (!sEluna->OnPacketReceive(this, *packet))
+                break;
+#endif
             opHandle->Call(this, *packet);
           } else
             processedPackets =
@@ -458,6 +478,10 @@ bool WorldSession::Update(uint32 diff, PacketFilter &updater) {
 
           if (AntiDOS.EvaluateOpcode(*packet, currentTime)) {
             sScriptMgr->OnPacketReceive(this, *packet);
+#ifdef ELUNA
+            if (!sEluna->OnPacketReceive(this, *packet))
+                break;
+#endif
             opHandle->Call(this, *packet);
           } else
             processedPackets =
