@@ -355,7 +355,7 @@ void WorldSession::HandleQuestgiverChooseRewardOpcode(WorldPackets::Quest::Quest
         sEluna->OnQuestReward(_player, questGiver, quest, packet.ItemChoiceID);
 #endif
         _player->RewardQuest(quest, packet.ItemChoiceID, object);
-    }
+
         switch (object->GetTypeId())
         {
         case TYPEID_UNIT:
