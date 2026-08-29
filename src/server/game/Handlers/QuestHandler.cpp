@@ -34,6 +34,9 @@
 #include "ScriptMgr.h"
 #include "World.h"
 #include "WorldPacket.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 #include "WorldSession.h"
 
 void WorldSession::HandleQuestgiverStatusQueryOpcode(WorldPackets::Quest::QuestGiverStatusQuery& packet)
@@ -101,6 +104,11 @@ void WorldSession::HandleQuestgiverHelloOpcode(WorldPackets::Quest::QuestGiverHe
     _player->PlayerTalkClass->ClearMenus();
     if (sScriptMgr->OnGossipHello(_player, creature))
         return;
+
+#ifdef ELUNA
+    if (sEluna->OnGossipHello(_player, creature))
+        return;
+#endif
 
     if (creature->AI()->GossipHello(_player))
         return;
@@ -340,8 +348,14 @@ void WorldSession::HandleQuestgiverChooseRewardOpcode(WorldPackets::Quest::Quest
 
     if (_player->CanRewardQuest(quest, packet.ItemChoiceID, true))
     {
+#ifdef ELUNA
+    if(Creature* creatureQGiver = object->ToCreature())
+        sEluna->OnQuestReward(_player, creatureQGiver, quest, packet.ItemChoiceID);
+    if (GameObject* questGiver = object->ToGameObject())
+        sEluna->OnQuestReward(_player, questGiver, quest, packet.ItemChoiceID);
+#endif
         _player->RewardQuest(quest, packet.ItemChoiceID, object);
-
+    }
         switch (object->GetTypeId())
         {
         case TYPEID_UNIT:
@@ -477,6 +491,11 @@ void WorldSession::HandleQuestLogRemoveQuest(WorldPackets::Quest::QuestLogRemove
             _player->AbandonQuest(questId); // remove all quest items player received before abandoning quest. Note, this does not
                                             // remove normal drop items that happen to be quest requirements.
             _player->RemoveActiveQuest(questId);
+
+#ifdef ELUNA
+            sEluna->OnQuestAbandon(_player, questId);
+#endif
+
             _player->RemoveTimedAchievement(ACHIEVEMENT_TIMED_TYPE_QUEST, questId);
 
             LOG_INFO("network", "Player %u abandoned quest %u", _player->GetGUID().GetCounter(), questId);
