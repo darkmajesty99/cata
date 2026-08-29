@@ -37,6 +37,9 @@
 #include "SHA1.h"
 #include "ScriptMgr.h"
 #include "World.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 
 using boost::asio::ip::tcp;
 
